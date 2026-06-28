@@ -1,65 +1,146 @@
-import Image from "next/image";
+export const dynamic = 'force-dynamic';
 
-export default function Home() {
+import { Suspense } from 'react';
+import { TopBar } from '@/components/layout/TopBar';
+import { CategoryFilter } from '@/components/listings/CategoryFilter';
+import { SearchBar } from '@/components/listings/SearchBar';
+import { ListingCard } from '@/components/listings/ListingCard';
+import { ListingCardSkeleton, Skeleton, CategoryFilterSkeleton } from '@/components/ui/Skeleton';
+import { ButtonLink } from '@/components/ui/Button';
+import { createClient } from '@/lib/supabase/server';
+import { fetchBrowseListings } from '@/lib/data/listings';
+import Link from 'next/link';
+import { PlusSquare, ArrowRight } from 'lucide-react';
+
+// ============================================================
+// Data-fetching component
+// ============================================================
+async function ListingsGrid({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; cat?: string; page?: string }>;
+}) {
+  const params = await searchParams;
+  const supabase = await createClient();
+
+  const query      = params.q ?? '';
+  const catSlug    = params.cat ?? 'all';
+  const page     = parseInt(params.page ?? '1', 10);
+  const pageSize = 20;
+
+  const listings = await fetchBrowseListings(supabase, { query, catSlug, page, pageSize });
+
+  if (listings.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+        <div className="text-5xl mb-4" aria-hidden="true">
+          {query ? '🔍' : catSlug !== 'all' ? '📭' : '🛍️'}
+        </div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          {query
+            ? `No results for "${query}"`
+            : catSlug !== 'all'
+              ? 'Nothing here yet'
+              : 'Be the first to list!'}
+        </h2>
+        <p className="text-sm text-gray-500 mb-6 max-w-xs">
+          {query
+            ? 'Try different keywords, or browse by category.'
+            : 'Post your first listing — it takes under 30 seconds.'}
+        </p>
+        {!query && (
+          <ButtonLink href="/sell">
+            <PlusSquare size={16} aria-hidden="true" />
+            Post a listing
+          </ButtonLink>
+        )}
+      </div>
+    );
+  }
+
+  const nextPageParams = new URLSearchParams({
+    ...(query    ? { q: query }        : {}),
+    ...(catSlug !== 'all' ? { cat: catSlug } : {}),
+    page: String(page + 1),
+  });
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <>
+      <ol
+        className="grid grid-cols-2 gap-3 px-4 pb-4 list-none"
+        aria-label={`Listings${query ? ` matching "${query}"` : ''}${catSlug !== 'all' ? ` in ${catSlug}` : ''}`}
+      >
+        {listings.map((listing, i) => (
+          <li key={listing.id}>
+            <ListingCard listing={listing} priority={i < 4} />
+          </li>
+        ))}
+      </ol>
+
+      {listings.length === pageSize && (
+        <div className="px-4 pb-4">
+          <Link
+            href={`?${nextPageParams}`}
+            className="flex items-center justify-center gap-2 w-full py-3 border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 hover:border-brand/40 hover:text-brand transition-colors press-scale"
+            scroll={false}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Load more
+            <ArrowRight size={14} aria-hidden="true" />
+          </Link>
         </div>
-      </main>
+      )}
+    </>
+  );
+}
+
+function GridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3 px-4 pb-4" aria-label="Loading listings..." aria-busy="true">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <ListingCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// Page
+// ============================================================
+export default function BrowsePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; cat?: string; page?: string }>;
+}) {
+  return (
+    <div className="pb-nav">
+      <TopBar showLogo />
+
+      {/* Search */}
+      <Suspense fallback={<div className="px-4 pb-2"><Skeleton className="h-11 w-full rounded-2xl" /></div>}>
+        <SearchBar />
+      </Suspense>
+
+      {/* Category filter */}
+      <Suspense fallback={<CategoryFilterSkeleton />}>
+        <CategoryFilter />
+      </Suspense>
+
+      {/* Seller prompt */}
+      <div className="mx-4 mb-4 p-4 rounded-2xl bg-orange-50 border border-orange-100 flex items-center gap-3">
+        <span className="text-2xl shrink-0" aria-hidden="true">🛍️</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-orange-700">Selling something?</p>
+          <p className="text-xs text-orange-600/80">List it in 30 seconds — reach your whole hostel.</p>
+        </div>
+        <ButtonLink href="/sell" size="sm" className="shrink-0" aria-label="Post a listing">
+          List it
+        </ButtonLink>
+      </div>
+
+      {/* Listings */}
+      <Suspense key={JSON.stringify(searchParams)} fallback={<GridSkeleton />}>
+        <ListingsGrid searchParams={searchParams} />
+      </Suspense>
     </div>
   );
 }

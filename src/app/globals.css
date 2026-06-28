@@ -1,26 +1,220 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   CampusMart Design System — Tailwind v4 CSS-first config
+   ============================================================ */
+
+@theme {
+  /* Brand palette */
+  --color-brand:        #F97316;
+  --color-brand-dark:   #EA580C;
+  --color-brand-light:  #FED7AA;
+  --color-brand-subtle: #FFF7ED;
+
+  /* Semantic colours */
+  --color-surface:      #FFFFFF;
+  --color-surface-2:    #F9FAFB;
+  --color-surface-3:    #F3F4F6;
+  --color-border:       #E5E7EB;
+  --color-border-strong:#D1D5DB;
+
+  --color-text-primary:   #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-muted:     #9CA3AF;
+  --color-text-on-brand:  #FFFFFF;
+
+  --color-success:  #10B981;
+  --color-warning:  #F59E0B;
+  --color-error:    #EF4444;
+  --color-info:     #3B82F6;
+
+  /* Verified badge */
+  --color-verified: #3B82F6;
+
+  /* WhatsApp brand */
+  --color-whatsapp:       #25D366;
+  --color-whatsapp-hover: #22BF5C;
+
+  /* Typography scale */
+  --font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+
+  /* Radius */
+  --radius-sm:  0.375rem;
+  --radius:     0.75rem;
+  --radius-lg:  1rem;
+  --radius-xl:  1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full:9999px;
+
+  /* Z-index scale */
+  --z-base:    0;
+  --z-above:   10;
+  --z-nav:     40;
+  --z-modal:   50;
+  --z-banner:  55;
+  --z-toast:   60;
+  --z-tooltip: 70;
+
+  /* Animation */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ============================================================
+   Base reset & globals
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-surface-2);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  overscroll-behavior: none;
+}
+
+/* Respect user motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Skip-to-content for keyboard users */
+.skip-to-content {
+  position: fixed;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  padding: 0.75rem 1.5rem;
+  background: var(--color-brand);
+  color: white;
+  border-radius: var(--radius);
+  font-weight: 600;
+  transition: top 0.15s;
+}
+.skip-to-content:focus {
+  top: 1rem;
+}
+
+/* Focus ring — visible on keyboard, hidden on mouse */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Scrollbar hide utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ============================================================
+   Microinteraction utilities
+   ============================================================ */
+
+/* Press/tap scale feedback — apply to any tappable element */
+.press-scale {
+  transition: transform 0.1s var(--ease-smooth), opacity 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.press-scale:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+/* Tap glow — brand-colored flash on active */
+.tap-glow {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.tap-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-brand);
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity 0.05s;
+  pointer-events: none;
+}
+.tap-glow:active::after {
+  opacity: 0.12;
+}
+
+/* ============================================================
+   Component primitives
+   ============================================================ */
+
+/* Card */
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
+  overflow: hidden;
+}
+
+/* Image skeleton shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #F3F4F6 25%,
+    #E9EAEB 50%,
+    #F3F4F6 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+
+/* Toast slide-up */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-4px) scale(0.96); }
+}
+
+/* ============================================================
+   Listing card image — progressive blur-up
+   ============================================================ */
+.img-blur-up {
+  filter: blur(8px);
+  transition: filter 0.3s ease;
+}
+.img-blur-up.loaded {
+  filter: blur(0);
+}
+
+/* ============================================================
+   Safe-area padding helpers
+   ============================================================ */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pb-nav {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
 }
